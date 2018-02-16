@@ -1,8 +1,6 @@
-from multiprocessing import Process, Event, Queue#, current_process
+from multiprocessing import Process, Event, Queue
 import logging.handlers, logging.config
 from datetime import datetime
-
-#shared_logging_queue = Queue
 
 sender_config = {
     'version': 1,
@@ -71,7 +69,6 @@ listener_config = {
 class MyHandler(object):
     def handle(self, record):
         logger = logging.getLogger(record.name)
-        #record.processName = '%s (for %s)' % (current_process().name, record.processName)
         logger.handle(record)
 
 class LogListener(Process):

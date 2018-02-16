@@ -1,4 +1,3 @@
-#from mplogger import sender_config
 import logging, logging.config
 from multiprocessing import Process, Event
 from time import sleep
