@@ -1,8 +1,8 @@
-from multiprocessing import Process, Event, Queue, current_process
+from multiprocessing import Process, Event, Queue#, current_process
 import logging.handlers, logging.config
 from datetime import datetime
 
-shared_logging_queue = Queue()
+#shared_logging_queue = Queue
 
 sender_config = {
     'version': 1,
@@ -10,15 +10,15 @@ sender_config = {
     'handlers': {
         'queue': {
             'class': 'logging.handlers.QueueHandler',
-            'queue': shared_logging_queue,
+            'queue': Queue,
         },
     },
     'loggers': {
         'application': {
             'level':       'DEBUG',
         },
-        'subprocess': {
-            'level':       'DEBUG',
+        'worker': {
+            'level':       'INFO',
         },
     },
     'root': {
@@ -34,7 +34,7 @@ listener_config = {
     'formatters': {
         'detailed': {
             'class':       'logging.Formatter',
-            'format':      '%(asctime)-16s:%(name)-21s:%(levelname)-8s[%(module)-13s.%(funcName)-20s %(lineno)-5s] %(message)s'
+            'format':      '%(asctime)-16s:%(name)-21s:%(processName)-15s:%(levelname)-8s[%(module)-13s.%(funcName)-20s %(lineno)-5s] %(message)s'
             },
         'brief': {
             'class':       'logging.Formatter',
@@ -50,7 +50,7 @@ listener_config = {
         'file': {
             'class':       'logging.FileHandler',
             'filename':    (datetime.now().strftime('RUN-%Y%m%d')+'.log'),
-            'mode':        'w',
+            'mode':        'a',
             'formatter':   'detailed',
         },
         #'filerotate': {
@@ -71,33 +71,28 @@ listener_config = {
 class MyHandler(object):
     def handle(self, record):
         logger = logging.getLogger(record.name)
-        record.processName = '%s (for %s)' % (current_process().name, record.processName)
+        #record.processName = '%s (for %s)' % (current_process().name, record.processName)
         logger.handle(record)
 
 class LogListener(Process):
-    def __init__(self, q):
+    def __init__(self, logQueue):
         super(LogListener, self).__init__()
         self.__stop_event = Event()
         self.name = 'listener'
-        self.logQueue = q
+        self.logQueue = logQueue
 
     def run(self):
         logging.config.dictConfig(listener_config)
-        logger = logging.getLogger('listener')
-        logger.info('Logging system initialised')
         listener = logging.handlers.QueueListener(self.logQueue, MyHandler())
         listener.start()
-        logger.info('Logging system running')
         while True:
             try:
                 self.__stop_event.wait()
                 listener.stop()
-                logger.info('Logging system stopped')
                 break
             except (KeyboardInterrupt, SystemExit):
                 listener.stop()
                 break
-                logger.info('Logging system stopped')
 
     def stop(self):
         self.__stop_event.set()

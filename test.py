@@ -1,22 +1,26 @@
 from mplogger import *
-from subprocess import SubProcess
+import logging, logging.config
+from worker import Worker
 from time import sleep
 
 if __name__ == '__main__':
     #Start the listener
-    
-    listener = LogListener()
+    logQueue = Queue()
+    print('Main logQueue {}'.format(logQueue))
+    listener = LogListener(logQueue)
     listener.start()
-    
-    logging.config.dictConfig(sender_config)
+    config = sender_config
+    config['handlers']['queue']['queue'] = logQueue
+    logging.config.dictConfig(config)
     logger = logging.getLogger('application')
     
     logger.info('Starting subprocesses')
     
     procs = []
     for i in range(5):
-        procs.append(SubProcess('SP{}'.format(i)))
-        procs[i].start()
+        p = Worker('SP{}'.format(i),config)
+        procs.append(p)
+        p.start()
     
     #Let the subprocesses run for 10 seconds, then tell them to stop
     sleep(10)
